@@ -238,6 +238,11 @@ def mirror(api, directory, evidence):
     published = api.request(f'/repos/{FORK}/releases/{target["id"]}')
     if published['draft'] or published['prerelease'] or published['tag_name'] != tag:
         raise RuntimeError('Release publication verification failed')
+    evidence['fork_release_url'] = published['html_url']
+    evidence['fork_assets'] = [
+        {key: asset.get(key) for key in ('id', 'name', 'size', 'digest')}
+        for asset in release_assets(api, published)
+    ]
     if verify_existing(api, release_assets(api, published), files, directory) != set(NAMES.values()):
         raise RuntimeError('Published assets changed')
     check_tag(remote_tag(source, 'fork', tag), object_sha)
