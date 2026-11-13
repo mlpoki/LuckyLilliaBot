@@ -1,0 +1,52 @@
+{
+  "baseline": "dc2b2b90092ef0f571b5546878288b83fff1e436",
+  "results": [
+    {
+      "name": "empty token rejected before native access",
+      "passed": true
+    },
+    {
+      "name": "missing native export returns retryable Error",
+      "passed": true
+    },
+    {
+      "name": "valid result and trimmed token/CDN passed to native interface",
+      "passed": true
+    },
+    {
+      "name": "invalid native result rejected",
+      "passed": true
+    },
+    {
+      "name": "forbidden native result rejected",
+      "passed": true
+    },
+    {
+      "name": "native retry returned as Error",
+      "passed": true
+    },
+    {
+      "name": "native exception preserved",
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "address": "127.0.0.1",
+      "path": "/valid"
+    },
+    {
+      "address": "127.0.0.1",
+      "path": "/invalid"
+    },
+    {
+      "address": "127.0.0.1",
+      "path": "/forbidden"
+    },
+    {
+      "address": "127.0.0.1",
+      "path": "/retry"
+    }
+  ],
+  "scope": "Public TS adapter with synthetic native import and loopback fixture. No native code, real signatures, login, token issuance, expiry or revocation verified."
+}
