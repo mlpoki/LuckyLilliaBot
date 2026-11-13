@@ -50,13 +50,15 @@ class GitHub:
             raise RuntimeError(f'GitHub HTTP {error.code} {method} {url}: {error.read().decode()}') from error
 
     def download(self, asset, path):
-        subprocess.run([
+        result = subprocess.run([
             'curl', '--fail', '--location', '--silent', '--show-error',
             '--connect-timeout', '30', '--max-time', '600',
             '--header', 'Authorization: Bearer ' + self.token,
             '--header', 'Accept: application/octet-stream',
             '--output', str(path), asset['url'],
-        ], check=True)
+        ])
+        if result.returncode:
+            raise RuntimeError(f'Asset download failed: {asset["name"]}, curl exit {result.returncode}')
 
 
 def select_assets(release):
@@ -238,6 +240,11 @@ def mirror(api, directory, evidence):
     if verify_existing(api, release_assets(api, published), files, directory) != set(NAMES.values()):
         raise RuntimeError('Published assets changed')
     check_tag(remote_tag(source, 'fork', tag), object_sha)
+    git(source, 'fetch', '--no-tags', 'fork', f'refs/tags/{tag}:refs/verification/published')
+    evidence['fork_tag_object'] = git(source, 'rev-parse', 'refs/verification/published')
+    evidence['fork_commit'] = git(source, 'rev-parse', 'refs/verification/published^{commit}')
+    if evidence['fork_tag_object'] != object_sha or evidence['fork_commit'] != commit:
+        raise RuntimeError('Published tag object or source commit mismatch')
     evidence['status'] = 'complete'
 
 

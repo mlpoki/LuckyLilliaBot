@@ -230,6 +230,18 @@ class MirrorTests(unittest.TestCase):
             self.run_mirror()
         self.assertIsNone(self.api.target)
 
+    def test_zero_byte_download_fails_before_writes(self):
+        self.api.payload = b''
+        with self.assertRaisesRegex(RuntimeError, 'size mismatch'):
+            self.run_mirror()
+        self.assertIsNone(self.api.target)
+
+    def test_http_failure_does_not_fall_back(self):
+        with patch.object(self.api, 'request', side_effect=RuntimeError('GitHub HTTP 403 rate limit')):
+            with self.assertRaisesRegex(RuntimeError, 'HTTP 403'):
+                self.run_mirror()
+        self.assertIsNone(self.api.target)
+
 
 if __name__ == '__main__':
     unittest.main()
