@@ -2,6 +2,11 @@ name: Mirror upstream release
 
 on:
   workflow_dispatch:
+    inputs:
+      prepare_only:
+        description: Download and verify all upstream assets, then report readiness
+        type: boolean
+        default: false
   push:
     tags: ['v*']
 
@@ -27,6 +32,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           WORKFLOW_SHA: ${{ github.workflow_sha }}
+          MIRROR_PREPARE_ONLY: ${{ inputs.prepare_only }}
         run: python3 script/release-mirror/mirror.py
       - name: Preserve verification and partial progress
         if: always()
