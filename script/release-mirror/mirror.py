@@ -26,6 +26,7 @@ NAMES = {
     'LuckyLillia.zip': 'LLBot.zip',
 }
 MARKER = '<!-- llbot-release-mirror:LuckyLilliaDev/LuckyLilliaBot -->'
+NOTES_DIRECTORY = Path(__file__).with_name('notes')
 
 
 class GitHub:
@@ -229,6 +230,11 @@ def mirror(api, directory, evidence, prepare_only=False):
              '- Asset renames only, archive contents and original signatures preserved.\n')
     for original, renamed in NAMES.items():
         body += f'  - `{original}` → `{renamed}`\n'
+    notes_path = NOTES_DIRECTORY / (tag + '.md')
+    if notes_path.is_file():
+        body = notes_path.read_text(encoding='utf-8').rstrip() + '\n\n' + MARKER + '\n'
+        evidence['reviewed_notes'] = notes_path.name
+    evidence['release_body_sha256'] = hashlib.sha256(body.encode()).hexdigest()
     if target is None:
         target = api.request(f'/repos/{FORK}/releases', 'POST', {
             'tag_name': tag, 'name': release['name'], 'body': body,
@@ -254,6 +260,8 @@ def mirror(api, directory, evidence, prepare_only=False):
     published = api.request(f'/repos/{FORK}/releases/{target["id"]}')
     if published['draft'] or published['prerelease'] or published['tag_name'] != tag:
         raise RuntimeError('Release publication verification failed')
+    if published['body'] != body:
+        raise RuntimeError('Published Release notes differ from the intended text')
     evidence['fork_release_url'] = published['html_url']
     evidence['fork_assets'] = [
         {key: asset.get(key) for key in ('id', 'name', 'size', 'digest')}

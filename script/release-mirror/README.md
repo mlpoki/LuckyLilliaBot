@@ -11,6 +11,8 @@ The original lightweight or annotated tag object and reachable source objects
 are pushed without changing `main`. Packages are renamed according to `NAMES`
 in `mirror.py` and retain their original bytes and signatures. Release notes
 retain upstream text and links and append a source marker and provenance.
+For a reviewed version, `notes/<tag>.md` supplies the approved Release body.
+The mirror appends its hidden ownership marker and verifies the published text.
 Runtime functionality is unverified. The Docker script is copied as bytes.
 The fork Docker job is
 disabled and its Release trigger is removed.
