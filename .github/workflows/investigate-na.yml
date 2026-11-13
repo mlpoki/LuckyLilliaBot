@@ -32,6 +32,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - uses: actions/checkout@v4
+        with:
+          repository: LuckyLilliaDev/LuckyLillia.Desktop
+          ref: a718675d6916fcf013e5929ddffe464fbd750c03
+          path: baseline-desktop
+          sparse-checkout: Services/AuthTokenValidator.cs
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
       - name: Download fixed packages and inspect bytes without execution
         env:
           GH_TOKEN: ${{ github.token }}
@@ -46,6 +57,13 @@ jobs:
           ConvertTo-Json -InputObject @($items) -Depth 5 | Set-Content evidence/pe-versions.json
       - name: Test public TypeScript adapter against loopback fixture only
         run: node --experimental-vm-modules script/na-investigation/adapter-test.mjs
+      - name: Test fixed Desktop validator against loopback HTTP only
+        env:
+          HTTP_PROXY: ''
+          HTTPS_PROXY: ''
+          ALL_PROXY: ''
+          NO_PROXY: '127.0.0.1'
+        run: dotnet run --project script/na-investigation/desktop-test/DesktopTest.csproj
       - name: Run existing mirror regression tests
         run: python -m unittest discover -s script/release-mirror -p "test_*.py" -v
       - uses: actions/upload-artifact@v4
