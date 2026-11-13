@@ -1,0 +1,58 @@
+{
+  "sourceCommit": "a718675d6916fcf013e5929ddffe464fbd750c03",
+  "results": [
+    {
+      "name": "empty rejected without request",
+      "passed": true,
+      "status": "Invalid"
+    },
+    {
+      "name": "2xx accepted; token trimmed",
+      "passed": true,
+      "status": "Valid"
+    },
+    {
+      "name": "401 rejected",
+      "passed": true,
+      "status": "Invalid"
+    },
+    {
+      "name": "403 rejected",
+      "passed": true,
+      "status": "Invalid"
+    },
+    {
+      "name": "503 inconclusive",
+      "passed": true,
+      "status": "Inconclusive"
+    },
+    {
+      "name": "unreachable loopback inconclusive",
+      "passed": true,
+      "status": "Inconclusive"
+    }
+  ],
+  "requests": [
+    {
+      "address": "127.0.0.1:52320",
+      "request": "GET /api/sign/info HTTP/1.1",
+      "code": 200
+    },
+    {
+      "address": "127.0.0.1:52320",
+      "request": "GET /api/sign/info HTTP/1.1",
+      "code": 401
+    },
+    {
+      "address": "127.0.0.1:52320",
+      "request": "GET /api/sign/info HTTP/1.1",
+      "code": 403
+    },
+    {
+      "address": "127.0.0.1:52320",
+      "request": "GET /api/sign/info HTTP/1.1",
+      "code": 503
+    }
+  ],
+  "scope": "Unmodified public Desktop preflight validator only. No GUI, PMHQ, native code, token issuance, real signature or QQ login executed."
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "repo": "LuckyLilliaDev/LuckyLillia.CLI",
+    "tag": "v2.1.4",
+    "asset": "LuckyLillia-win-x64.exe",
+    "asset_sha256": "8a86d5cf1cb39493c22f148245e1ceaeea0f25fcaa9602a083d4deda405077bb",
+    "member": "LuckyLillia-win-x64.exe",
+    "sha256": "8a86d5cf1cb39493c22f148245e1ceaeea0f25fcaa9602a083d4deda405077bb",
+    "matches": []
+  },
+  {
+    "repo": "LuckyLilliaDev/LuckyLillia.Desktop",
+    "tag": "v3.1.2",
+    "asset": "lucky-lillia-desktop-win-x64.zip",
+    "asset_sha256": "ddddad913c2a2677a7ed79b051e44574ced9aa5aec7078a3d27c33f60ad2d903",
+    "member": "lucky-lillia-desktop.exe",
+    "sha256": "9b9826a62da1c16e6d6f5ed31df00cfeeb7913175d704c8cbaf1a27d6bf85419",
+    "matches": [
+      {
+        "package": "LLBot-Desktop-win-x64.zip",
+        "path": "LuckyLillia.exe"
+      }
+    ]
+  },
+  {
+    "repo": "linyuchen/PMHQ",
+    "tag": "v9.0.4",
+    "asset": "pmhq-win-x64.zip",
+    "asset_sha256": "0bc9507376f2fee5b2589e924d9fb89381a21e461e3b30b97f9a68a00afcf053",
+    "member": "pmhq-win-x64.exe",
+    "sha256": "945edd552a31f7e6e9b21620a8f50729965956d062df5fe12fb7de4276d510e7",
+    "matches": [
+      {
+        "package": "LLBot-CLI-win-x64.zip",
+        "path": "bin/pmhq/pmhq.exe"
+      }
+    ]
+  },
+  {
+    "repo": "linyuchen/PMHQ",
+    "tag": "v9.0.4",
+    "asset": "pmhq-win-x64.zip",
+    "asset_sha256": "0bc9507376f2fee5b2589e924d9fb89381a21e461e3b30b97f9a68a00afcf053",
+    "member": "pmhq.dll",
+    "sha256": "ebeae2141cf6b95551a6bf47ad656dfc522dd5691361cc899b6c208c70d1f800",
+    "matches": [
+      {
+        "package": "LLBot-CLI-win-x64.zip",
+        "path": "bin/pmhq/pmhq.dll"
+      }
+    ]
+  },
+  {
+    "repo": "linyuchen/PMHQ",
+    "tag": "v9.0.6",
+    "asset": "pmhq-win-x64.zip",
+    "asset_sha256": "64da6159976aee0eb1b67bc0c82ca3c540d9bfd4a41cc17d5a308e24dbfd7587",
+    "member": "pmhq-win-x64.exe",
+    "sha256": "273f7384be59037ae171e8371bb8b48e3880f3c9d559a0300ecbc01380b8fdc3",
+    "matches": []
+  },
+  {
+    "repo": "linyuchen/PMHQ",
+    "tag": "v9.0.6",
+    "asset": "pmhq-win-x64.zip",
+    "asset_sha256": "64da6159976aee0eb1b67bc0c82ca3c540d9bfd4a41cc17d5a308e24dbfd7587",
+    "member": "pmhq.dll",
+    "sha256": "345a8fc083f08968a73c237441c6b56010757f613857bc96cec7449623e46ae4",
+    "matches": []
+  },
+  {
+    "source_commit": "dc2b2b90092ef0f571b5546878288b83fff1e436",
+    "member": "baseline\\src\\main\\qqProtocol\\direct-lib\\sign-proxy\\sign-proxy.win-x64.node",
+    "sha256": "e42cba1619b716055bf77c765c4d86fd35398d071c564cebf158c01d2988cc03",
+    "matches": [
+      {
+        "package": "LLBot-CLI-win-x64.zip",
+        "path": "bin/llbot/sign-proxy.win-x64.node"
+      },
+      {
+        "package": "LLBot-Desktop-win-x64.zip",
+        "path": "bin/llbot/sign-proxy.win-x64.node"
+      }
+    ]
+  }
+]

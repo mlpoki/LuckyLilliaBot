@@ -1,0 +1,44 @@
+[
+  {
+    "path": "evidence\\binaries\\LLBot-CLI-win-x64\\LuckyLillia.exe",
+    "fileVersion": "2.1.4",
+    "productVersion": "2.1.4",
+    "originalFilename": "LuckyLillia.exe",
+    "productName": "LuckyLillia"
+  },
+  {
+    "path": "evidence\\binaries\\LLBot-CLI-win-x64\\bin\\llbot\\sign-proxy.win-x64.node",
+    "fileVersion": null,
+    "productVersion": null,
+    "originalFilename": null,
+    "productName": null
+  },
+  {
+    "path": "evidence\\binaries\\LLBot-CLI-win-x64\\bin\\pmhq\\pmhq.dll",
+    "fileVersion": null,
+    "productVersion": null,
+    "originalFilename": null,
+    "productName": null
+  },
+  {
+    "path": "evidence\\binaries\\LLBot-CLI-win-x64\\bin\\pmhq\\pmhq.exe",
+    "fileVersion": null,
+    "productVersion": null,
+    "originalFilename": null,
+    "productName": null
+  },
+  {
+    "path": "evidence\\binaries\\LLBot-Desktop-win-x64\\LuckyLillia.exe",
+    "fileVersion": "3.1.2.0",
+    "productVersion": "3.1.2+a718675d6916fcf013e5929ddffe464fbd750c03",
+    "originalFilename": "LuckyLilliaDesktop.dll",
+    "productName": "Lucky Lillia Desktop"
+  },
+  {
+    "path": "evidence\\binaries\\LLBot-Desktop-win-x64\\bin\\llbot\\sign-proxy.win-x64.node",
+    "fileVersion": null,
+    "productVersion": null,
+    "originalFilename": null,
+    "productName": null
+  }
+]
