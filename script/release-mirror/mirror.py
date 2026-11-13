@@ -75,11 +75,12 @@ def select_assets(release):
 
 
 def snapshot(release):
+    assets = select_assets(release)
     return {
         'id': release['id'], 'tag_name': release['tag_name'],
         'name': release['name'], 'body': release.get('body'),
         'assets': [{key: asset.get(key) for key in ('id', 'name', 'size', 'digest', 'url')}
-                   for asset in select_assets(release)],
+                   for asset in assets],
     }
 
 
