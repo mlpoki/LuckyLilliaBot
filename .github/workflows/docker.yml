@@ -1,8 +1,6 @@
 name: Build and Push LLOneBot Docker Image
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -12,6 +10,7 @@ on:
 
 jobs:
   build-and-push:
+    if: github.repository == 'LuckyLilliaDev/LuckyLilliaBot'
     runs-on: ubuntu-latest
 
     steps:
