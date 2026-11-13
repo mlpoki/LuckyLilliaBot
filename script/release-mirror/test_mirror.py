@@ -284,6 +284,18 @@ class MirrorTests(unittest.TestCase):
         for asset in old_assets:
             self.assertIn(asset, self.api.assets)
 
+    def test_reviewed_notes_survive_publication_and_rerun(self):
+        notes = self.root / 'notes'
+        notes.mkdir()
+        text = '## 已审阅的发行说明\n\n用户修改后的正文。\n'
+        (notes / 'v1.2.3.md').write_text(text, encoding='utf-8')
+        with patch.object(mirror, 'NOTES_DIRECTORY', notes):
+            evidence = self.run_mirror()
+            self.run_mirror()
+        self.assertEqual(self.api.target['body'], text.rstrip() + '\n\n' + mirror.MARKER + '\n')
+        self.assertEqual(evidence['reviewed_notes'], 'v1.2.3.md')
+        self.assertEqual(self.api.uploads, len(mirror.NAMES))
+
 
 if __name__ == '__main__':
     unittest.main()
