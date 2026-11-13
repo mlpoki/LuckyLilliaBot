@@ -20,6 +20,10 @@ NAMES = {
     'LuckyLillia-Desktop-win-x64.zip': 'LLBot-Desktop-win-x64.zip',
     'LuckyLillia-CLI-linux-x64.zip': 'LLBot-CLI-linux-x64.zip',
     'LuckyLillia-CLI-linux-arm64.zip': 'LLBot-CLI-linux-arm64.zip',
+    'LuckyLillia-CLI-macos-arm64.tar.xz': 'LLBot-CLI-macos-arm64.tar.xz',
+    'LuckyLillia-Desktop-macos-arm64.tar.xz': 'LLBot-Desktop-macos-arm64.tar.xz',
+    'LuckyLillia-Docker.sh': 'LLBot-Docker.sh',
+    'LuckyLillia.zip': 'LLBot.zip',
 }
 MARKER = '<!-- llbot-release-mirror:LuckyLilliaDev/LuckyLilliaBot -->'
 
@@ -36,7 +40,7 @@ class GitHub:
             'X-GitHub-Api-Version': '2022-11-28',
         }
         if isinstance(data, bytes):
-            headers['Content-Type'] = 'application/zip'
+            headers['Content-Type'] = 'application/octet-stream'
         elif data is not None:
             headers['Content-Type'] = 'application/json'
             data = json.dumps(data).encode()
@@ -64,14 +68,21 @@ class GitHub:
 def select_assets(release):
     if not release or release['draft'] or release['prerelease']:
         raise RuntimeError('Upstream has no latest official Release')
-    result = []
     for name in NAMES:
         matches = [asset for asset in release['assets'] if asset['name'] == name]
         if len(matches) != 1:
             actual = [asset['name'] for asset in release['assets']]
             raise RuntimeError(f'Required asset {name}: expected one, found {len(matches)}. Actual assets: {actual}')
-        result.append(matches[0])
-    return result
+    target_names = set()
+    for asset in release['assets']:
+        name = asset['name']
+        if name in ('.', '..') or '/' in name or '\\' in name or not name:
+            raise RuntimeError(f'Unsafe asset filename: {name}')
+        target = NAMES.get(name, name)
+        if target in target_names:
+            raise RuntimeError(f'Duplicate target asset filename: {target}')
+        target_names.add(target)
+    return sorted(release['assets'], key=lambda asset: asset['name'])
 
 
 def snapshot(release):
@@ -164,7 +175,7 @@ def verify_existing(api, assets, files, directory):
     return present
 
 
-def mirror(api, directory, evidence):
+def mirror(api, directory, evidence, prepare_only=False):
     upstream = '/repos/' + UPSTREAM
     release = api.request(upstream + '/releases/latest')  # Exactly once per run.
     locked = snapshot(release)
@@ -184,13 +195,14 @@ def mirror(api, directory, evidence):
     check_fork_tag(source, tag, object_sha)
     files = evidence['files'] = []
     for asset in select_assets(release):
-        path = directory / NAMES[asset['name']]
+        path = directory / NAMES.get(asset['name'], asset['name'])
         api.download(asset, path)
         digest = verify_file(path, asset)
-        with zipfile.ZipFile(path) as archive:
-            bad = archive.testzip()
-            if bad:
-                raise RuntimeError(f'Corrupt ZIP member: {bad}')
+        if path.suffix == '.zip':
+            with zipfile.ZipFile(path) as archive:
+                bad = archive.testzip()
+                if bad:
+                    raise RuntimeError(f'Corrupt ZIP member: {bad}')
         files.append({'source_name': asset['name'], 'target_name': path.name,
                       'source_id': asset['id'], 'size': asset['size'], 'sha256': digest})
     target = find_release(api, tag)
@@ -203,12 +215,15 @@ def mirror(api, directory, evidence):
         raise RuntimeError('Upstream Release inputs changed during download')
     check_tag(remote_tag(source, 'upstream', tag), object_sha)
     check_fork_tag(source, tag, object_sha)
+    if prepare_only:
+        evidence['status'] = 'ready_for_upload'
+        return
     git(source, 'push', 'fork', f'refs/tags/{tag}:refs/tags/{tag}')
     evidence['tag_synced'] = True
     body = (release.get('body') or '') + '\n\n---\n' + MARKER + '\n'
     body += (f'\nMirrored from {release["html_url"]}\n\n'
              f'- Original tag `{tag}`, commit `{commit}`, tag object `{object_sha}`.\n'
-             f'- Synchronized at {evidence["started_at"]}. Windows/Linux only.\n'
+             f'- Synchronized at {evidence["started_at"]}. All {len(files)} upstream Release assets included.\n'
              '- Upstream finished packages copied directly, without recompilation.\n'
              '- Package bytes match upstream. Runtime functionality has not been independently verified.\n'
              '- Asset renames only, archive contents and original signatures preserved.\n')
@@ -229,7 +244,8 @@ def mirror(api, directory, evidence):
         url = target['upload_url'].split('{')[0] + '?name=' + urllib.parse.quote(item['target_name'])
         api.request(url, 'POST', (directory / item['target_name']).read_bytes())
         evidence['uploaded'].append(item['target_name'])
-    if verify_existing(api, release_assets(api, target), files, directory) != set(NAMES.values()):
+    expected_names = {item['target_name'] for item in files}
+    if verify_existing(api, release_assets(api, target), files, directory) != expected_names:
         raise RuntimeError('Required published assets are incomplete')
     check_tag(remote_tag(source, 'fork', tag), object_sha)
     target = api.request(f'/repos/{FORK}/releases/{target["id"]}', 'PATCH', {
@@ -243,7 +259,7 @@ def mirror(api, directory, evidence):
         {key: asset.get(key) for key in ('id', 'name', 'size', 'digest')}
         for asset in release_assets(api, published)
     ]
-    if verify_existing(api, release_assets(api, published), files, directory) != set(NAMES.values()):
+    if verify_existing(api, release_assets(api, published), files, directory) != expected_names:
         raise RuntimeError('Published assets changed')
     check_tag(remote_tag(source, 'fork', tag), object_sha)
     git(source, 'fetch', '--no-tags', 'fork', f'refs/tags/{tag}:refs/verification/published')
@@ -272,7 +288,8 @@ def main():
                       GIT_CONFIG_KEY_0='http.https://github.com/.extraheader',
                       GIT_CONFIG_VALUE_0='AUTHORIZATION: basic ' + auth)
     try:
-        mirror(GitHub(token), directory, evidence)
+        mirror(GitHub(token), directory, evidence,
+               prepare_only=os.environ.get('MIRROR_PREPARE_ONLY') == 'true')
     except Exception as error:
         evidence['error'] = str(error)
         raise

@@ -2,7 +2,7 @@ name: Test release mirror
 
 on:
   push:
-    branches: [codex/fork-release-mirror]
+    branches: [codex/fork-release-mirror, codex/llbot-all-release-assets]
     paths:
       - 'script/release-mirror/**'
       - '.github/workflows/release-mirror-test.yml'

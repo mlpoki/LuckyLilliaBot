@@ -25,7 +25,6 @@ class FakeGitHub:
             'draft': False, 'prerelease': False, 'html_url': 'https://example.org/source',
             'assets': [self.asset(name, index) for index, name in enumerate(mirror.NAMES, 1)],
         }
-        self.release['assets'].append(self.asset('macos.zip', 5))
         self.target = None
         self.assets = []
         self.contents = {}
@@ -58,6 +57,8 @@ class FakeGitHub:
             from urllib.parse import parse_qs, urlparse
             name = parse_qs(urlparse(path).query)['name'][0]
             asset = self.asset(name, 100 + self.uploads)
+            asset['size'] = len(data)
+            asset['digest'] = 'sha256:' + hashlib.sha256(data).hexdigest()
             self.assets.append(asset)
             self.contents[asset['url']] = data
             self.uploads += 1
@@ -99,16 +100,16 @@ class MirrorTests(unittest.TestCase):
             args = (*args[:3], str(location))
         return self.git(directory, *args)
 
-    def run_mirror(self):
+    def run_mirror(self, prepare_only=False):
         self.counter += 1
         directory = self.root / str(self.counter)
         directory.mkdir()
         evidence = {'started_at': '2026-11-13T00:00:00Z', 'status': 'incomplete'}
         with patch.object(mirror, 'git', side_effect=self.routed_git):
-            mirror.mirror(self.api, directory, evidence)
+            mirror.mirror(self.api, directory, evidence, prepare_only=prepare_only)
         return evidence
 
-    def test_first_sync_preserves_annotated_object_and_excludes_macos(self):
+    def test_first_sync_preserves_annotated_object_and_includes_all_assets(self):
         evidence = self.run_mirror()
         self.assertEqual(evidence['status'], 'complete')
         self.assertEqual(evidence['tag_type'], 'tag')
@@ -129,7 +130,7 @@ class MirrorTests(unittest.TestCase):
         before = copy.deepcopy(self.api.assets)
         self.run_mirror()
         self.assertEqual(self.api.assets, before)
-        self.assertEqual(self.api.uploads, 4)
+        self.assertEqual(self.api.uploads, len(mirror.NAMES))
         self.assertEqual(self.api.latest_calls, 2)
 
     def test_upload_interruption_resumes_draft(self):
@@ -140,7 +141,7 @@ class MirrorTests(unittest.TestCase):
         self.assertEqual(len(self.api.assets), 1)
         self.api.fail_upload = None
         self.run_mirror()
-        self.assertEqual(self.api.uploads, 4)
+        self.assertEqual(self.api.uploads, len(mirror.NAMES))
         self.assertFalse(self.api.target['draft'])
 
     def test_missing_asset_and_duplicate_asset_fail_before_writes(self):
@@ -172,7 +173,7 @@ class MirrorTests(unittest.TestCase):
         self.git(self.upstream, 'tag', '-f', '-a', 'v1.2.3', '-m', 'Different annotation')
         with self.assertRaisesRegex(RuntimeError, 'Tag object conflict'):
             self.run_mirror()
-        self.assertEqual(self.api.uploads, 4)
+        self.assertEqual(self.api.uploads, len(mirror.NAMES))
 
     def test_changed_release_inputs_fail_before_writes(self):
         self.api.changed_inputs = True
@@ -199,7 +200,7 @@ class MirrorTests(unittest.TestCase):
         self.api.contents[asset['url']] = b'x' * asset['size']
         with self.assertRaisesRegex(RuntimeError, 'digest mismatch|content conflict'):
             self.run_mirror()
-        self.assertEqual(self.api.uploads, 4)
+        self.assertEqual(self.api.uploads, len(mirror.NAMES))
 
     def test_digest_absent_still_checks_bytes(self):
         self.run_mirror()
@@ -221,7 +222,7 @@ class MirrorTests(unittest.TestCase):
         unrelated = self.api.asset('user-file.txt', 900)
         self.api.assets.append(unrelated)
         self.run_mirror()
-        self.assertEqual(self.api.uploads, 5)
+        self.assertEqual(self.api.uploads, len(mirror.NAMES) + 1)
         self.assertIn(unrelated, self.api.assets)
 
     def test_upstream_digest_failure_stops_before_writes(self):
@@ -241,6 +242,47 @@ class MirrorTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'HTTP 403'):
                 self.run_mirror()
         self.assertIsNone(self.api.target)
+
+    def test_prepare_only_verifies_without_publishing(self):
+        evidence = self.run_mirror(prepare_only=True)
+        self.assertEqual(evidence['status'], 'ready_for_upload')
+        self.assertEqual(len(evidence['files']), len(mirror.NAMES))
+        self.assertEqual(self.api.uploads, 0)
+        self.assertIsNone(self.api.target)
+        result = subprocess.run(['git', '-C', str(self.fork), 'show-ref', '--tags'],
+                                capture_output=True)
+        self.assertEqual(result.returncode, 1)
+
+    def test_additional_upstream_asset_is_included(self):
+        self.api.release['assets'].append(self.api.asset('additional-file.txt', 50))
+        self.run_mirror()
+        self.assertEqual(self.api.uploads, len(mirror.NAMES) + 1)
+        self.assertIn('additional-file.txt', {a['name'] for a in self.api.assets})
+
+    def test_macos_and_script_bytes_are_preserved(self):
+        for asset in self.api.release['assets']:
+            if asset['name'].endswith(('.tar.xz', '.sh')):
+                payload = ('Original bytes for ' + asset['name']).encode()
+                self.api.contents[asset['url']] = payload
+                asset['size'] = len(payload)
+                asset['digest'] = 'sha256:' + hashlib.sha256(payload).hexdigest()
+        self.run_mirror()
+        for source in self.api.release['assets']:
+            target = next(a for a in self.api.assets if a['name'] == mirror.NAMES[source['name']])
+            self.assertEqual(self.api.contents[target['url']],
+                             self.api.contents.get(source['url'], self.api.payload))
+
+    def test_previously_published_four_assets_are_reused(self):
+        self.run_mirror()
+        old_names = {'LLBot-CLI-win-x64.zip', 'LLBot-Desktop-win-x64.zip',
+                     'LLBot-CLI-linux-x64.zip', 'LLBot-CLI-linux-arm64.zip'}
+        old_assets = [a for a in self.api.assets if a['name'] in old_names]
+        self.api.assets = copy.deepcopy(old_assets)
+        before = self.api.uploads
+        self.run_mirror()
+        self.assertEqual(self.api.uploads - before, len(mirror.NAMES) - len(old_names))
+        for asset in old_assets:
+            self.assertIn(asset, self.api.assets)
 
 
 if __name__ == '__main__':
