@@ -78,6 +78,15 @@ def main():
     download(upstream_url, upstream, "sha256", lock["llbot_sha256"])
     with zipfile.ZipFile(upstream) as package:
         package.extractall(root)
+    main_script = root / "bin/llbot/llbot.js"
+    source = main_script.read_text()
+    old_guard = "if (!pmhqSelfInfo.online) {"
+    if source.count(old_guard) != 1:
+        raise RuntimeError("Historical login readiness guard could not be identified uniquely")
+    source = source.replace(old_guard, "if (!pmhqSelfInfo?.online) {")
+    source = source.replace("//# sourceMappingURL=llbot.js.map", "")
+    main_script.write_text(source)
+    (root / "bin/llbot/llbot.js.map").unlink()
     for name in ("llbot", "bin/llbot/node", "bin/pmhq/pmhq"):
         (root / name).chmod(0o755)
     pmhq_url = f"https://registry.npmjs.org/pmhq-dist-linux-{arch}/-/pmhq-dist-linux-{arch}-7.3.2.tgz"
@@ -113,6 +122,8 @@ def main():
         "media": media,
         "node_version": subprocess.check_output([root / "bin/llbot/node", "--version"], text=True).strip(),
         "workflow_commit": os.environ.get("GITHUB_SHA", "local"),
+        "startup_fix": "Retry when PMHQ getSelfInfo has not returned an object yet",
+        "patched_llbot_sha256": hashlib.file_digest(main_script.open("rb"), "sha256").hexdigest(),
     }
     (root / "COMPONENTS.json").write_text(json.dumps(components, indent=2) + "\n")
     for relative in ("llbot", "bin/pmhq/pmhq", "bin/llbot/node", "bin/llbot/ffmpeg", "bin/llbot/ffprobe", "QQ/qq"):

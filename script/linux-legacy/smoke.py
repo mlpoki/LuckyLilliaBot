@@ -82,6 +82,8 @@ def main():
                     os.killpg(child.pid, signal.SIGKILL)
         (evidence / "smoke.json").write_text(json.dumps(result, indent=2) + "\n")
         print(json.dumps(result, indent=2), flush=True)
+        if not result["passed"] and (evidence / "startup.log").exists():
+            print("\n".join((evidence / "startup.log").read_text(errors="replace").splitlines()[-70:]), flush=True)
 
 
 if __name__ == "__main__":
