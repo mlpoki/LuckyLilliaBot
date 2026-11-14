@@ -1,0 +1,49 @@
+name: Verify Linux LLBot 7.12.15 bundles
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/linux-7.12.15-recovery]
+    paths:
+      - .github/workflows/linux-legacy-recovery.yml
+      - script/linux-legacy/**
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install system runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth dbus-x11 libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libsecret-1-0 libnotify4
+      - name: Assemble fixed-version bundle
+        run: python3 script/linux-legacy/bundle.py '${{ matrix.arch }}'
+      - name: Start bundled QQ, PMHQ and LLBot without an account
+        run: python3 script/linux-legacy/smoke.py '${{ matrix.arch }}'
+      - name: Preserve bundle and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: llbot-7.12.15-linux-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: |
+            out/*.tar.gz
+            out/*.sha256
+            out/evidence/
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 14
