@@ -31,7 +31,10 @@ def download(url, path, algorithm, expected):
 
 def extract(archive, destination):
     with tarfile.open(archive, "r:xz") as package:
-        package.extractall(destination, filter="data")
+        members = [member for member in package.getmembers()
+                   if "__MACOSX" not in Path(member.name).parts
+                   and not Path(member.name).name.startswith("._")]
+        package.extractall(destination, members=members, filter="data")
 
 
 def patch_readiness(base):
