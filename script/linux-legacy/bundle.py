@@ -17,6 +17,8 @@ ARCHIVES = {
         "deb_arch": "amd64",
         "llbot_sha256": "37fd13134281808291cd7ccd2aba64250280ef3de19b17d2b6a88b08ed16b70a",
         "qq_sha256": "a4252719c1beb8adce0da09ebfc310ce50c79ea548f5cce429505765d0bfba84",
+        "qq_release": "3.2.23-260108",
+        "qq_version_prefix": "3.2.23-",
         "pmhq_integrity": "U7KKfmx4JKYBitxAUfonW51R1+gFchXox0R2qib2DIcDm6nQFUyyhGBtx+Qhd1qfmblAS/IM+WPKAyXeUgT53Q==",
         "ffmpeg_version": "4.1.0",
         "ffmpeg_integrity": "Y5BWhGLU/WpQjOArNIgXD3z5mxxdV8c41C+U15nsE5yF8tVcdCGet5zPs5Zy3Ta6bU7haGpIzryutqCGQA/W8A==",
@@ -25,7 +27,9 @@ ARCHIVES = {
     "arm64": {
         "deb_arch": "arm64",
         "llbot_sha256": "6e98701e73c734a8957475f04e492d618d705e532d05b7df2118ec36fa1e605b",
-        "qq_sha256": "870ed3c0e417e9bb3a021c1d56518bc2fbba82d1c3e1871384f64ab7e21923f7",
+        "qq_sha256": "9bdd24e12d01000dd1e1a95197ed597cb2b7ab7e4b9c254131439c26900b2185",
+        "qq_release": "3.2.20-251023",
+        "qq_version_prefix": "3.2.20-",
         "pmhq_integrity": "axeuxU3y88YqrVVAhj+t+X4+1Hx2CnafTEGvr7YxWr5Ly0Z1TdVVdjfxK5gGPL5abxXYunk7DTV77OfCa48NaQ==",
         "ffmpeg_version": "4.1.4",
         "ffmpeg_integrity": "dljEqAOD0oIM6O6DxBW9US/FkvqvQwgJ2lGHOwHDDwu/pX8+V0YsDL1xqHbj1DMX/+nP9rxw7G7gcUvGspSoKg==",
@@ -98,14 +102,14 @@ def main():
             if (root / "bin/pmhq" / target).read_bytes() != data:
                 raise RuntimeError(f"Historical release PMHQ differs from npm 7.3.2: {target}")
         (root / "bin/pmhq/package.json").write_bytes(package.extractfile("package/package.json").read())
-    qq_url = f"https://github.com/zydou/QQ-Linux/releases/download/3.2.23-260108/QQ-3.2.23-260108-{lock['deb_arch']}.deb"
+    qq_url = f"https://github.com/zydou/QQ-Linux/releases/download/{lock['qq_release']}/QQ-{lock['qq_release']}-{lock['deb_arch']}.deb"
     qq_deb = downloads / "qq.deb"
     download(qq_url, qq_deb, "sha256", lock["qq_sha256"])
     qq_extract = downloads / "qq-extracted"
     subprocess.run(["dpkg-deb", "--extract", str(qq_deb), str(qq_extract)], check=True)
     shutil.copytree(qq_extract / "opt/QQ", root / "QQ", symlinks=True)
     qq_version = json.loads((root / "QQ/resources/app/package.json").read_text())["version"]
-    if qq_version != "3.2.23-44343":
+    if not qq_version.startswith(lock["qq_version_prefix"]):
         raise RuntimeError(f"Unexpected QQ version {qq_version}")
     media = {}
     for tool in ("ffmpeg", "ffprobe"):
@@ -115,6 +119,8 @@ def main():
         shutil.copy2(workspace / "script/linux-legacy" / name, root / name)
         (root / name).chmod(0o755)
     shutil.copy2(workspace / "script/linux-legacy/README.md", root / "README.md")
+    readme = root / "README.md"
+    readme.write_text(readme.read_text().replace("{{QQ_VERSION}}", qq_version))
     components = {
         "llbot": {"version": "7.12.15", "url": upstream_url, "sha256": lock["llbot_sha256"]},
         "qq": {"version": qq_version, "url": qq_url, "sha256": lock["qq_sha256"]},

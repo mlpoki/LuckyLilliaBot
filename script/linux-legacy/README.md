@@ -1,6 +1,6 @@
 # LLBot 7.12.15 Linux CLI 完整配套包
 
-包含相同架构的 QQ 3.2.23-44343、Node、PMHQ 7.3.2、FFmpeg 和 FFprobe。组件下载来源、版本与哈希保存在 COMPONENTS.json。
+包含相同架构的 QQ {{QQ_VERSION}}、Node、PMHQ 7.3.2、FFmpeg 和 FFprobe。组件下载来源、版本与哈希保存在 COMPONENTS.json。
 
 修正了首次连接 PMHQ 时账号信息尚未返回便读取 online 字段的异常，此时继续等待并重试。修改后的主程序哈希记录在 COMPONENTS.json。
 
