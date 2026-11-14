@@ -1,0 +1,56 @@
+name: Verify macOS arm64 LLBot 7.12.15 bundles
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/macos-7.12.15-recovery]
+    paths:
+      - .github/workflows/macos-legacy-recovery.yml
+      - script/macos-legacy/**
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [CLI, Desktop]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record native runner
+        run: |
+          uname -a
+          sw_vers
+          test "$(uname -m)" = arm64
+      - name: Assemble fixed-version package
+        run: python3 script/macos-legacy/bundle.py '${{ matrix.kind }}'
+      - name: Exercise native startup without an account
+        run: python3 script/macos-legacy/smoke.py '${{ matrix.kind }}'
+      - name: Preserve startup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: llbot-macos-${{ matrix.kind }}-evidence-${{ github.run_attempt }}
+          path: out/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve complete bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: llbot-7.12.15-macos-${{ matrix.kind }}-${{ github.run_attempt }}
+          path: |
+            out/*.tar.gz
+            out/*.sha256
+          if-no-files-found: warn
+          compression-level: 0
+          retention-days: 14
