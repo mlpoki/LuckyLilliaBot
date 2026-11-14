@@ -13,8 +13,12 @@ import urllib.request
 def http(url, payload=None):
     data = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=3) as response:
-        return response.status, response.read()
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(request, timeout=3) as response:
+            return response.status, response.read()
+    except Exception as error:
+        raise RuntimeError(f"{url}: {error}") from error
 
 
 def main():
@@ -78,6 +82,9 @@ def main():
         result["error"] = str(error)
         raise
     finally:
+        if not result["passed"]:
+            sockets = subprocess.run(["lsof", "-nP", "-iTCP:13000", "-iTCP:3080", "-sTCP:LISTEN"], capture_output=True, text=True)
+            (evidence / "listeners.txt").write_text(sockets.stdout + sockets.stderr)
         if child is not None and child.poll() is None:
             os.killpg(child.pid, signal.SIGTERM)
         for executable in (base / "bin/qq/QQ.app/Contents/MacOS/QQ", base / "bin/pmhq/pmhq", base / "bin/llbot/node"):
