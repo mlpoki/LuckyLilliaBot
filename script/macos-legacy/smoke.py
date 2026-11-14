@@ -43,8 +43,6 @@ def main():
         subprocess.run([base / "bin/llbot/node", root / "prepare.cjs", "--ci"], env=environment, check=True)
         log = (evidence / "startup.log").open("w")
         command = [str(root / "Start.command")]
-        if kind == "CLI":
-            command.append("--headless")
         child = subprocess.Popen(command, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         deadline = time.monotonic() + 120
         last_error = "endpoints did not become ready"
