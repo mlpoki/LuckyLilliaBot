@@ -36,7 +36,7 @@ def main():
         log = (evidence / "startup.log").open("w")
         child = subprocess.Popen([
             "xvfb-run", "-a", "dbus-run-session", "--", str(root / "start.sh"),
-            "--qq-args=--no-sandbox",
+            "--headless", "--qq-args=--no-sandbox --disable-gpu",
         ], cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         processes.append(child)
         deadline = time.monotonic() + 100
@@ -56,13 +56,15 @@ def main():
                     raise RuntimeError("PMHQ did not return a QQ online-state boolean")
                 webui_status, _ = request("http://127.0.0.1:3080/")
                 text = (evidence / "startup.log").read_text(errors="replace")
-                if "TypeError" in text or "ERR_MODULE_NOT_FOUND" in text:
+                if "[W] app TypeError" in text or "ERR_MODULE_NOT_FOUND" in text or "UnhandledPromiseRejection" in text:
                     raise RuntimeError("LLBot reported a runtime exception")
-                if health_status == 200 and webui_status == 200:
+                qr = root / "qrcode.png"
+                qr_ready = qr.exists() and qr.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+                if health_status == 200 and webui_status == 200 and qr_ready:
                     time.sleep(8)
                     if child.poll() is not None:
                         raise RuntimeError("CLI stopped after endpoints became ready")
-                    result.update(passed=True, pmhq_health=200, webui_http=200, qq_online_state_available=True)
+                    result.update(passed=True, pmhq_health=200, webui_http=200, qq_online_state_available=True, login_qrcode_available=True)
                     break
             except Exception as error:
                 last_error = str(error)
