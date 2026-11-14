@@ -15,6 +15,7 @@ import tarfile
 UPSTREAM = "https://github.com/LuckyLilliaDev/LuckyLilliaBot/releases/download/v7.12.15/"
 CLI_SHA256 = "540a14ef2afaefa7893f033228e37942073dc80cf8719c638881892d14c5ab88"
 DESKTOP_SHA256 = "0f02c1114ceb1f75569cc64b902425df81400e78e1c9250e8998be14fab1e051"
+PMHQ_INTEGRITY = "UyN4/EBBx+lgNlsxMFzx61UbOhZoJg/S7tnlqVT6JPzUqRo5KqiI1KDCDBQ9nWg74C8jp9YtJx8EhIQ+7cSDiA=="
 MEDIA = {
     "ffmpeg": ("4.1.5", "hYqTiP63mXz7wSQfuqfFwfLOfwwFChUedeCVKkBtl/cliaTM7/ePI9bVzfZ2c+dWu3TqCwLDRWNSJ5pqZl8otA=="),
     "ffprobe": ("5.0.1", "vwNCNjokH8hfkbl6m95zICHwkSzhEvDC3GVBcUp5HX8+4wsX10SP3B+bGur7XUzTIZ4cQpgJmEIAx6TUwRepMg=="),
@@ -70,6 +71,12 @@ def main():
         extract(desktop_archive, root)
         base = root / "LuckyLilliaDesktop.app/Contents/MacOS"
         shutil.copytree(cli / "bin", base / "bin", dirs_exist_ok=True, symlinks=True)
+    pmhq_url = "https://registry.npmjs.org/pmhq-dist-macos-arm64/-/pmhq-dist-macos-arm64-7.1.1.tgz"
+    pmhq_archive = downloads / "pmhq.tgz"
+    download(pmhq_url, pmhq_archive, "sha512", PMHQ_INTEGRITY)
+    with tarfile.open(pmhq_archive, "r:gz") as package:
+        for member, name in [("pmhq-macos-arm64", "pmhq"), ("libpmhq.dylib", "libpmhq.dylib"), ("package.json", "package.json")]:
+            (base / "bin/pmhq" / name).write_bytes(package.extractfile("package/" + member).read())
     patch_readiness(base)
     component_record = {
         "llbot_version": "7.12.15",
@@ -77,6 +84,7 @@ def main():
         "upstream_desktop_sha256": DESKTOP_SHA256 if kind == "Desktop" else None,
         "workflow_commit": os.environ.get("GITHUB_SHA", "local"),
         "startup_fix": "Retry when PMHQ has not returned account information yet",
+        "pmhq_source": {"url": pmhq_url, "sha512_base64": PMHQ_INTEGRITY},
     }
     for tool, (version, integrity) in MEDIA.items():
         url = f"https://registry.npmjs.org/@{tool}-installer/darwin-arm64/-/darwin-arm64-{version}.tgz"
@@ -109,8 +117,9 @@ def main():
     component_record["node_version"] = subprocess.check_output([base / "bin/llbot/node", "--version"], text=True).strip()
     with (base / "bin/qq/QQ.app/Contents/Info.plist").open("rb") as stream:
         info = plistlib.load(stream)
-        component_record["qq_version"] = info.get("CFBundleShortVersionString")
-        component_record["qq_build"] = info.get("CFBundleVersion")
+        component_record["qq_bundle_version"] = info.get("CFBundleShortVersionString")
+        component_record["qq_bundle_build"] = info.get("CFBundleVersion")
+    component_record["qq_version"] = json.loads((base / "bin/qq/QQ.app/Contents/Resources/app/package.json").read_text())["version"]
     (base / "bin/pmhq/pmhq_config.json").write_text(json.dumps({"qq_path": "", "quick_login_qq": "", "default_host": "127.0.0.1", "default_port": 13000}, indent=2))
     for name in ("Start.command", "prepare.cjs"):
         shutil.copy2(source / name, root / name)
