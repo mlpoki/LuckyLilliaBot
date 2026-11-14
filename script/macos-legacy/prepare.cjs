@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = __dirname;
 const desktop = fs.readFileSync(path.join(root, 'package-kind.txt'), 'utf8').trim() === 'Desktop';
-const base = desktop ? path.join(root, 'LuckyLilliaDesktop.app', 'Contents', 'MacOS') : root;
+const base = root;
 const qq = path.join(base, 'bin', 'qq', 'QQ.app', 'Contents', 'MacOS', 'QQ');
 const pmhqConfig = path.join(base, 'bin', 'pmhq', 'pmhq_config.json');
 const config = JSON.parse(fs.readFileSync(pmhqConfig, 'utf8'));

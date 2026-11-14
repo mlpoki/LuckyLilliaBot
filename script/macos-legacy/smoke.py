@@ -21,7 +21,7 @@ def main():
     kind = sys.argv[1]
     output = Path.cwd() / "out"
     root = output / f"LLBot-{kind}-macos-arm64"
-    base = root if kind == "CLI" else root / "LuckyLilliaDesktop.app/Contents/MacOS"
+    base = root
     evidence = output / "evidence"
     evidence.mkdir()
     home = output / "test-home"

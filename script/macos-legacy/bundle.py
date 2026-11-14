@@ -69,8 +69,14 @@ def main():
         desktop_archive = downloads / "desktop.tar.xz"
         download(UPSTREAM + "LLBot-Desktop-macos-arm64.tar.xz", desktop_archive, "sha256", DESKTOP_SHA256)
         extract(desktop_archive, root)
-        base = root / "LuckyLilliaDesktop.app/Contents/MacOS"
+        base = root
         shutil.copytree(cli / "bin", base / "bin", dirs_exist_ok=True, symlinks=True)
+        plist_path = root / "LuckyLilliaDesktop.app/Contents/Info.plist"
+        with plist_path.open("rb") as stream:
+            info = plistlib.load(stream)
+        info.update(CFBundleVersion="2.8.0", CFBundleShortVersionString="2.8.0")
+        with plist_path.open("wb") as stream:
+            plistlib.dump(info, stream)
     pmhq_url = "https://registry.npmjs.org/pmhq-dist-macos-arm64/-/pmhq-dist-macos-arm64-7.1.1.tgz"
     pmhq_archive = downloads / "pmhq.tgz"
     download(pmhq_url, pmhq_archive, "sha512", PMHQ_INTEGRITY)
@@ -104,7 +110,7 @@ def main():
     if kind == "CLI":
         required.append("llbot")
     else:
-        required.append("LuckyLilliaDesktop")
+        required.append("LuckyLilliaDesktop.app/Contents/MacOS/LuckyLilliaDesktop")
     for relative in required:
         executable = base / relative
         executable.chmod(executable.stat().st_mode | 0o111)
